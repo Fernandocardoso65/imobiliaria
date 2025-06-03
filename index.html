@@ -5,9 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Imobiliária Oto</title>
     <style>
-        /* Mantenha TODO o seu CSS existente aqui */
-        /* Certifique-se de que os estilos .form-section, .user-status, etc. ainda estão aqui */
-        /* E que display: none; para .form-section está presente */
+        /* Estilos CSS gerais */
         * {
             margin: 0;
             padding: 0;
@@ -211,11 +209,40 @@
             position: relative;
         }
 
-        .modal-content img {
-            width: 100%;
+        /* NOVO: Estilos para a galeria dentro do modal */
+        #modal-gallery {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px; /* Espaço entre as imagens */
+            justify-content: center;
+            margin-top: 20px;
+            max-height: 70vh; /* Limita altura da galeria */
+            overflow-y: auto; /* Adiciona scroll se houver muitas imagens */
+            padding: 5px; /* Padding interno */
+        }
+
+        #modal-gallery img {
+            width: calc(50% - 5px); /* Duas colunas com espaço */
+            height: auto;
+            object-fit: cover;
+            border-radius: 5px;
+            cursor: pointer; /* Indica que a imagem é clicável */
+            transition: transform 0.2s ease;
+        }
+
+        #modal-gallery img:hover {
+            transform: scale(1.03);
+        }
+
+        /* Estilo para a imagem principal (se você decidir ter uma ao clicar na miniatura) */
+        .modal-main-image {
+            max-width: 100%;
             height: auto;
             border-radius: 5px;
+            margin-bottom: 15px;
+            display: block; /* Garante que a imagem principal ocupe sua própria linha */
         }
+
 
         .modal-content button {
             position: absolute;
@@ -374,7 +401,7 @@
             margin: 0.3rem 0;
         }
 
-        /* Os estilos para .form-section, .user-status, etc. ainda devem estar aqui no CSS global */
+        /* Estilos para formulário de autenticação e publicação (geral) */
         .form-section {
             padding: 3rem 1rem;
             max-width: 800px;
@@ -382,7 +409,6 @@
             background-color: #fff;
             border-radius: 10px;
             box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-            /* Importante: Esta seção deve estar oculta por padrão no index.html */
             display: none; 
         }
 
@@ -468,9 +494,102 @@
             background-color: #c0392b;
         }
 
+        /* NOVO: Estilos para o botão de EXCLUIR */
+        .btn-excluir {
+            background-color: #e74c3c; /* Vermelho para exclusão */
+            color: #fff;
+            border: none;
+            padding: 0.5rem 1rem;
+            border-radius: 5px;
+            cursor: pointer;
+            margin-top: 0.5rem;
+            transition: background-color 0.3s ease;
+            font-size: 0.9rem; /* Um pouco menor */
+        }
+
+        .btn-excluir:hover {
+            background-color: #c0392b;
+        }
+
+
         @media (max-width: 768px) {
+            header h1 {
+                font-size: 1.5rem;
+            }
+
+            nav a {
+                font-size: 0.9rem;
+                margin: 0 0.5rem;
+            }
+
+            .hero h2 {
+                font-size: 1.8rem;
+            }
+
+            .hero p {
+                font-size: 1rem;
+            }
+
+            .properties h2,
+            .testimonials h2,
+            .contact h2,
+            .location h2 {
+                font-size: 1.5rem;
+            }
+
+            .property-info h3 {
+                font-size: 1.1rem;
+            }
+
+            .property-info p {
+                font-size: 0.9rem;
+            }
+
+            .whatsapp-btn {
+                bottom: 15px;
+                right: 15px;
+                padding: 0.8rem;
+                font-size: 1.2rem;
+            }
             .form-section {
                 padding: 1.5rem;
+            }
+
+            /* NOVO: Ajuste para modal em telas menores */
+            #modal-gallery img {
+                width: 100%; /* Uma coluna em telas pequenas */
+            }
+        }
+
+        @media (max-width: 480px) {
+            header h1 {
+                font-size: 1.2rem;
+            }
+
+            nav a {
+                display: block;
+                margin: 0.5rem 0;
+            }
+
+            .hero {
+                height: 300px;
+            }
+
+            .hero h2 {
+                font-size: 1.5rem;
+            }
+
+            .hero p {
+                font-size: 0.9rem;
+            }
+
+            .contact form {
+                padding: 0 1rem;
+            }
+
+            .modal-content {
+                padding: 1rem;
+                width: 95%;
             }
         }
     </style>
@@ -481,8 +600,10 @@
         <nav>
             <a href="index.html#home">Início</a>
             <a href="index.html#properties">Imóveis</a>
-            <a href="publish.html">Publicar Imóvel</a> <a href="index.html#testimonials">Depoimentos</a>
+            <a href="publish.html">Publicar Imóvel</a>
+            <a href="index.html#testimonials">Depoimentos</a>
             <a href="index.html#contact">Contato</a>
+            <a href="#" id="nav-logout-btn" style="display: none;">Sair</a>
         </nav>
     </header>
 
@@ -531,11 +652,12 @@
         </div>
     </section>
 
-    <div id="modal" class="modal">
+    <div id="modal" class="modal" style="display: none;">
         <div class="modal-content">
             <button onclick="closeModal()">Fechar</button>
             <h3 id="modal-title"></h3>
-            <img id="modal-image" src="" alt="Imagem do Imóvel">
+            <div id="modal-gallery">
+                </div>
         </div>
     </div>
 
@@ -583,7 +705,12 @@
     <script type="module" src="./supabaseClient.js"></script>
     <script type="module">
         console.log('DOM completamente carregado em index.html. Iniciando setup...');
-        import { loadProperties } from './app.js'; // Apenas o que é necessário para esta página
+        // Apenas o que é necessário para esta página (carregar imóveis e funcoes de modal)
+        import { loadProperties, openModal, closeModal } from './app.js'; 
+
+        // Torna as funções do modal acessíveis globalmente para onclick
+        window.openModal = openModal;
+        window.closeModal = closeModal;
 
         document.addEventListener('DOMContentLoaded', () => {
             loadProperties(); // Carrega os imóveis existentes
