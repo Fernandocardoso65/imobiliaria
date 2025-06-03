@@ -7,6 +7,7 @@
     <style>
         /* Copie e cole TODO o conteúdo da tag <style> do seu index.html aqui */
         /* Certifique-se de incluir os estilos para .form-section, .user-status, etc. */
+        /* E que display: none; para .form-section está presente */
         * {
             margin: 0;
             padding: 0;
@@ -50,9 +51,6 @@
             color: #3498db;
         }
 
-        /* Removidos estilos .hero, .filters, .properties, .property-card, .property-grid, .testimonials, .location, .contact
-           pois são específicos da página principal e não serão usados em publish.html */
-
         /* Estilos do modal (se for necessário nesta página) */
         .modal {
             display: none;
@@ -76,11 +74,40 @@
             position: relative;
         }
 
-        .modal-content img {
-            width: 100%;
+        /* NOVO: Estilos para a galeria dentro do modal */
+        #modal-gallery {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px; /* Espaço entre as imagens */
+            justify-content: center;
+            margin-top: 20px;
+            max-height: 70vh; /* Limita altura da galeria */
+            overflow-y: auto; /* Adiciona scroll se houver muitas imagens */
+            padding: 5px; /* Padding interno */
+        }
+
+        #modal-gallery img {
+            width: calc(50% - 5px); /* Duas colunas com espaço */
+            height: auto;
+            object-fit: cover;
+            border-radius: 5px;
+            cursor: pointer; /* Indica que a imagem é clicável */
+            transition: transform 0.2s ease;
+        }
+
+        #modal-gallery img:hover {
+            transform: scale(1.03);
+        }
+
+        /* Estilo para a imagem principal (se você decidir ter uma ao clicar na miniatura) */
+        .modal-main-image {
+            max-width: 100%;
             height: auto;
             border-radius: 5px;
+            margin-bottom: 15px;
+            display: block; /* Garante que a imagem principal ocupe sua própria linha */
         }
+
 
         .modal-content button {
             position: absolute;
@@ -194,7 +221,7 @@
             background-color: #c0392b;
         }
 
-        /* --- ESTILOS PARA O BOTÃO CANCELAR --- */
+        /* Estilos para o botão CANCELAR */
         .btn-cancelar {
             background-color: #6c757d; /* Um cinza neutro */
             color: #fff;
@@ -212,7 +239,24 @@
             background-color: #5a6268; /* Um cinza mais escuro ao passar o mouse */
         }
 
-        /* Opcional: Para que os botões fiquem lado a lado em telas maiores */
+        /* Estilos para o botão de EXCLUIR - Adicionei aqui também se for necessário, embora o principal seja no index.html */
+        .btn-excluir {
+            background-color: #e74c3c; /* Vermelho para exclusão */
+            color: #fff;
+            border: none;
+            padding: 0.5rem 1rem;
+            border-radius: 5px;
+            cursor: pointer;
+            margin-top: 0.5rem;
+            transition: background-color 0.3s ease;
+            font-size: 0.9rem; /* Um pouco menor */
+        }
+
+        .btn-excluir:hover {
+            background-color: #c0392b;
+        }
+
+        /* Opcional: Para que os botões do formulário fiquem lado a lado em telas maiores */
         @media (min-width: 600px) {
             #publish-form {
                 flex-direction: row; /* Coloca os elementos lado a lado */
@@ -235,6 +279,26 @@
         @media (max-width: 768px) {
             .form-section {
                 padding: 1.5rem;
+            }
+            /* Ajuste para modal em telas menores */
+            #modal-gallery img {
+                width: 100%; /* Uma coluna em telas pequenas */
+            }
+        }
+
+        @media (max-width: 480px) {
+            header h1 {
+                font-size: 1.2rem;
+            }
+
+            nav a {
+                display: block;
+                margin: 0.5rem 0;
+            }
+
+            .modal-content {
+                padding: 1rem;
+                width: 95%;
             }
         }
     </style>
@@ -341,7 +405,8 @@
         <div class="modal-content">
             <button onclick="closeModal()">Fechar</button>
             <h3 id="modal-title"></h3>
-            <img id="modal-image" src="" alt="Imagem do Imóvel">
+            <div id="modal-gallery">
+                </div>
         </div>
     </div>
 
@@ -361,7 +426,7 @@
     <script type="module" src="./auth.js"></script>
     <script type="module">
         console.log('DOM completamente carregado em publish.html. Iniciando setup...');
-        // Importa o que é necessário para esta página (autenticação e submissão)
+        // Importa o que é necessário para esta página (autenticação e submissão, funcoes de modal)
         import { setupAuthForms, setupPropertySubmission, openModal, closeModal } from './app.js'; 
 
         // Torna as funções do modal acessíveis globalmente para onclick
