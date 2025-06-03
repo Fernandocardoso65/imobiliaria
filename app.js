@@ -1,19 +1,17 @@
 // app.js
 import { supabase, auth, storage, db } from './supabaseClient.js';
 
-// --- Funções auxiliares (AGORA EXPORTADAS para serem importadas) ---
-export function openModal(title, imageSrc) { // Adicionado 'export'
+// --- Funções auxiliares (global para onclick no HTML) ---
+export function openModal(title, imageSrc) {
     document.getElementById('modal-title').textContent = title;
     document.getElementById('modal-image').src = imageSrc;
     document.getElementById('modal').style.display = 'flex';
 };
 
-export function closeModal() { // Adicionado 'export'
+export function closeModal() {
     document.getElementById('modal').style.display = 'none';
 };
 
-// Funções que são chamadas via onclick direto no HTML, não precisam de export aqui
-// mas são definidas em window. para acesso global
 window.applyFilters = function() {
     const type = document.getElementById('type').value;
     const minPrice = parseFloat(document.getElementById('min-price').value) || 0;
@@ -49,6 +47,22 @@ window.submitForm = function() {
         alert('Por favor, preencha todos os campos antes de enviar.');
     }
 };
+
+// --- NOVA FUNÇÃO: Sanear nome do arquivo para upload ---
+function sanitizeFileName(fileName) {
+    // Normaliza para decompor caracteres acentuados (ex: 'à' -> 'a')
+    // Remove os diacríticos (acentos)
+    // Substitui caracteres não-alfanuméricos (exceto . - _) por hífens
+    // Substitui múltiplos hífens por um único e remove hífens no início/final
+    // Converte para minúsculas para consistência em nomes de arquivo
+    return fileName
+        .normalize("NFD") // Normaliza para decompor caracteres acentuados
+        .replace(/[\u0300-\u036f]/g, "") // Remove os acentos (combinado com normalize)
+        .replace(/[^a-zA-Z0-9.\-_]/g, "-") // Substitui caracteres não-alfanuméricos (exceto . - _) por hífens
+        .replace(/--+/g, "-") // Substitui múltiplos hífens por um único
+        .replace(/^-+|-+$/g, "") // Remove hífens no início e no final
+        .toLowerCase(); // Converte para minúsculas
+}
 
 
 // --- FUNÇÕES DE INTEGRAÇÃO SUPABASE ---
@@ -131,11 +145,8 @@ export function setupAuthForms() {
 
             if (profileError) {
                 console.error('Erro ao buscar perfil do usuário:', profileError.message);
-                // Se não conseguir o perfil, pode ser um erro ou o perfil ainda não existe.
-                // O usuário está logado no Auth, mas não tem perfil no DB.
                 alert('Seu perfil de usuário não pôde ser carregado. Tente novamente ou contate o suporte.');
-                // Recomendo deslogar se o perfil não puder ser carregado para evitar estados inconsistentes
-                await auth.signOut();
+                await auth.signOut(); // Desloga em caso de perfil corrompido/inexistente
                 updateAuthUI(); // Atualiza a UI após o logout
                 return;
             }
@@ -308,7 +319,9 @@ export function setupPropertySubmission() {
 
             for (let i = 0; i < files.length; i++) {
                 const file = files[i];
-                const filePath = `${usuarioId}/${novoImovelId}/${Date.now()}-${file.name}`;
+                // --- APLICA A FUNÇÃO DE SANEAR O NOME DO ARQUIVO AQUI ---
+                const sanitizedFileName = sanitizeFileName(file.name); // Chama a função aqui
+                const filePath = `${usuarioId}/${novoImovelId}/${Date.now()}-${sanitizedFileName}`; // Usa o nome saneado
 
                 const { error: uploadError } = await storage
                     .from('fotos-imoveis')
