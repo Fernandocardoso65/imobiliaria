@@ -2,10 +2,36 @@
 import { supabase, auth, storage, db } from './supabaseClient.js';
 
 // --- Funções auxiliares (global para onclick no HTML) ---
-export function openModal(title, imageSrc) {
+export function openModal(title, photos) { // Modificado para aceitar 'photos' (array)
     document.getElementById('modal-title').textContent = title;
-    document.getElementById('modal-image').src = imageSrc;
-    document.getElementById('modal').style.display = 'flex';
+    const modalGallery = document.getElementById('modal-gallery'); // Referência ao novo contêiner
+    if (!modalGallery) { // Garante que a galeria existe na página
+        console.error('Div #modal-gallery não encontrada no modal.');
+        return;
+    }
+    modalGallery.innerHTML = ''; // Limpa qualquer conteúdo anterior
+
+    if (photos && photos.length > 0) {
+        photos.forEach(photo => {
+            const img = document.createElement('img');
+            img.src = photo.url_foto; // Acesse a URL da foto
+            img.alt = title; // Use o título do imóvel como alt
+            // Estilos definidos no CSS global para #modal-gallery img
+            modalGallery.appendChild(img);
+        });
+    } else {
+        // Se não houver fotos, exiba uma imagem placeholder
+        const img = document.createElement('img');
+        img.src = 'https://via.placeholder.com/800x400?text=Nenhuma+Foto+Disponível';
+        img.alt = 'Nenhuma foto disponível';
+        img.style.width = '100%';
+        img.style.height = 'auto';
+        img.style.objectFit = 'cover';
+        img.style.borderRadius = '5px';
+        modalGallery.appendChild(img);
+    }
+
+    document.getElementById('modal').style.display = 'flex'; // Exibe o modal
 };
 
 export function closeModal() {
@@ -48,20 +74,15 @@ window.submitForm = function() {
     }
 };
 
-// --- NOVA FUNÇÃO: Sanear nome do arquivo para upload ---
+// --- FUNÇÃO AUXILIAR: Sanear nome do arquivo para upload ---
 function sanitizeFileName(fileName) {
-    // Normaliza para decompor caracteres acentuados (ex: 'à' -> 'a')
-    // Remove os diacríticos (acentos)
-    // Substitui caracteres não-alfanuméricos (exceto . - _) por hífens
-    // Substitui múltiplos hífens por um único e remove hífens no início/final
-    // Converte para minúsculas para consistência em nomes de arquivo
     return fileName
-        .normalize("NFD") // Normaliza para decompor caracteres acentuados
-        .replace(/[\u0300-\u036f]/g, "") // Remove os acentos (combinado com normalize)
-        .replace(/[^a-zA-Z0-9.\-_]/g, "-") // Substitui caracteres não-alfanuméricos (exceto . - _) por hífens
-        .replace(/--+/g, "-") // Substitui múltiplos hífens por um único
-        .replace(/^-+|-+$/g, "") // Remove hífens no início e no final
-        .toLowerCase(); // Converte para minúsculas
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .replace(/[^a-zA-Z0-9.\-_]/g, "-")
+        .replace(/--+/g, "-")
+        .replace(/^-+|-+$/g, "")
+        .toLowerCase();
 }
 
 
@@ -70,7 +91,7 @@ function sanitizeFileName(fileName) {
 // Carrega e exibe os imóveis na página principal (index.html)
 export async function loadProperties() {
     const propertyGrid = document.getElementById('property-grid');
-    if (!propertyGrid) { // Garante que esta função só rode se a div existe na página
+    if (!propertyGrid) {
         console.warn('Div #property-grid não encontrada. loadProperties não será executada nesta página.');
         return;
     }
@@ -79,7 +100,17 @@ export async function loadProperties() {
     const { data: imoveis, error: imovelError } = await db
         .from('imoveis')
         .select(`
-            *,
+            id,
+            titulo,
+            descricao,
+            endereco,
+            preco,
+            tipo_imovel,
+            num_quartos,
+            num_banheiros,
+            area_m2,
+            status_imovel,
+            usuario_id,
             fotos_imoveis (url_foto)
         `);
 
@@ -96,9 +127,27 @@ export async function loadProperties() {
         return;
     }
 
+    // NOVO: Verifica o status do usuário apenas UMA vez para a exibição de botões de exclusão
+    const { data: { user } } = await auth.getUser();
+    let isAdmin = false;
+    if (user) {
+        const { data: profile, error: profileError } = await db
+            .from('usuarios')
+            .select('role')
+            .eq('id', user.id)
+            .single();
+        if (!profileError) {
+            isAdmin = profile.role === 'admin';
+        } else {
+            console.error('Erro ao buscar perfil para verificar admin em loadProperties:', profileError.message);
+        }
+    }
+
+
     imoveis.forEach(imovel => {
-        const defaultImageUrl = imovel.fotos_imoveis && imovel.fotos_imoveis.length > 0
-            ? imovel.fotos_imoveis[0].url_foto
+        const allPhotos = imovel.fotos_imoveis || []; // Garante que é um array, mesmo que vazio
+        const defaultImageUrl = allPhotos.length > 0
+            ? allPhotos[0].url_foto
             : 'https://via.placeholder.com/500x200?text=Sem+Foto';
 
         const card = document.createElement('div');
@@ -107,6 +156,9 @@ export async function loadProperties() {
         card.setAttribute('data-price', imovel.preco || 0);
         card.setAttribute('data-bedrooms', imovel.num_quartos || 0);
         card.setAttribute('data-status', imovel.status_imovel || 'Pronto');
+        // Armazena todas as fotos no dataset para passar para o modal
+        card.setAttribute('data-photos', JSON.stringify(allPhotos));
+
 
         card.innerHTML = `
             <img src="${defaultImageUrl}" alt="${imovel.titulo || 'Imóvel'}">
@@ -115,12 +167,90 @@ export async function loadProperties() {
                 <p>${imovel.endereco || ''}, Piedade, SP</p>
                 <p>${imovel.num_quartos || 0} quartos, ${imovel.num_banheiros || 0} banheiros, ${imovel.area_m2 || 0} m²</p>
                 <p class="price">R$ ${parseFloat(imovel.preco || 0).toLocaleString('pt-BR')}</p>
-                <button onclick="openModal('${imovel.titulo}', '${defaultImageUrl}')">Ver Fotos</button>
+                <button class="btn-ver-fotos">Ver Fotos</button>
+                
+                <button class="btn-excluir" data-imovel-id="${imovel.id}" style="display: ${isAdmin ? 'block' : 'none'};">Excluir</button>
             </div>
         `;
         propertyGrid.appendChild(card);
+
+        // NOVO: Adiciona listener para o botão "Ver Fotos" para passar os dados corretos
+        card.querySelector('.btn-ver-fotos').addEventListener('click', (e) => {
+            const title = imovel.titulo || 'Imóvel';
+            const photosString = card.getAttribute('data-photos');
+            const photos = JSON.parse(photosString); // Converte de volta para array
+            openModal(title, photos); // Chama openModal com todas as fotos
+        });
+    });
+
+    // NOVO: Adiciona listener para o botão "Excluir" em TODOS os cards
+    document.querySelectorAll('.btn-excluir').forEach(button => {
+        button.addEventListener('click', async (e) => {
+            const imovelId = e.target.getAttribute('data-imovel-id');
+            if (confirm(`Tem certeza que deseja excluir o imóvel ID ${imovelId}? Todas as fotos também serão removidas.`)) {
+                await deleteImovel(imovelId);
+            }
+        });
     });
 }
+
+// NOVO: Função para deletar imóvel
+async function deleteImovel(imovelId) {
+    try {
+        // 1. Deletar as fotos do Storage PRIMEIRO (arquivos)
+        const { data: fotos, error: fotosError } = await db
+            .from('fotos_imoveis')
+            .select('url_foto') // Apenas a url_foto para pegar o path
+            .eq('imovel_id', imovelId);
+
+        if (fotosError) {
+            console.error('Erro ao buscar fotos para deleção:', fotosError.message);
+            // Continua a deleção do imóvel mesmo se não conseguir listar as fotos
+        } else if (fotos.length > 0) {
+            const filesToDelete = fotos.map(foto => {
+                // O 'path' no Storage é o que precisamos para deletar
+                // A URL pública é https://<PROJECT_REF>.supabase.co/storage/v1/object/public/<BUCKET_NAME>/<PATH_TO_FILE>
+                // Então, o path é tudo depois de /public/<BUCKET_NAME>/
+                const bucketName = 'fotos-imoveis'; // Seu nome do bucket
+                // Assegura que o path realmente contém o nome do bucket antes de splitar
+                if (foto.url_foto && foto.url_foto.includes(`/${bucketName}/`)) {
+                    return foto.url_foto.split(`/${bucketName}/`)[1];
+                }
+                return null; // Retorna null se o formato da URL não for o esperado
+            }).filter(path => path); // Filtra paths nulos
+
+            if (filesToDelete.length > 0) {
+                const { data: deleteFilesData, error: deleteFilesError } = await storage
+                    .from(bucketName)
+                    .remove(filesToDelete); // Remove múltiplos arquivos
+
+                if (deleteFilesError) {
+                    console.error('Erro ao deletar arquivos do Storage:', deleteFilesError.message);
+                    alert('Erro ao deletar algumas fotos do armazenamento. O imóvel será removido, mas as fotos podem permanecer.');
+                } else {
+                    console.log('Arquivos do Storage deletados com sucesso:', deleteFilesData);
+                }
+            }
+        }
+
+        // 2. Deletar o registro do imóvel do banco de dados (fotos_imoveis serão CASCADE deletadas)
+        const { error: imovelDeleteError } = await db
+            .from('imoveis')
+            .delete()
+            .eq('id', imovelId);
+
+        if (imovelDeleteError) {
+            throw imovelDeleteError;
+        }
+
+        alert('Imóvel e fotos associadas excluídos com sucesso!');
+        loadProperties(); // Recarrega a lista para remover o imóvel deletado
+    } catch (error) {
+        console.error('Erro ao excluir imóvel:', error.message);
+        alert('Erro ao excluir imóvel: ' + error.message);
+    }
+}
+
 
 // Configura os formulários de autenticação (login/cadastro) e controla a visibilidade das seções
 export function setupAuthForms() {
@@ -136,49 +266,43 @@ export function setupAuthForms() {
         const { data: { user } } = await auth.getUser(); // Obtém o usuário logado
 
         if (user) {
-            // --- BUSCA O PERFIL DO USUÁRIO PARA OBTER O PAPEL (ROLE) ---
             const { data: profile, error: profileError } = await db
-                .from('usuarios') // SEU NOME DA TABELA DE PERFIS (ex: 'profiles' ou 'usuarios')
-                .select('role') // Seleciona apenas a coluna 'role'
-                .eq('id', user.id) // O ID do perfil deve ser o ID do usuário logado
-                .single(); // Espera um único resultado para este ID
+                .from('usuarios')
+                .select('role')
+                .eq('id', user.id)
+                .single();
 
             if (profileError) {
                 console.error('Erro ao buscar perfil do usuário:', profileError.message);
                 alert('Seu perfil de usuário não pôde ser carregado. Tente novamente ou contate o suporte.');
-                await auth.signOut(); // Desloga em caso de perfil corrompido/inexistente
-                updateAuthUI(); // Atualiza a UI após o logout
+                await auth.signOut();
+                updateAuthUI();
                 return;
             }
 
-            const isAdmin = profile && profile.role === 'admin'; // Verifica se o papel é 'admin'
+            const isAdmin = profile && profile.role === 'admin';
             console.log('Usuário logado:', user.email, 'É Admin?', isAdmin);
 
-            // --- ATUALIZAÇÃO DA UI PARA USUÁRIO LOGADO ---
-            if (userStatusDiv) { // Garante que a div existe na página atual
+            if (userStatusDiv) {
                 userStatusDiv.style.display = 'block';
                 userStatusDiv.innerHTML = `Bem-vindo, ${user.email} ${isAdmin ? '(Admin)' : ''}! <button id="logout-btn-inline">Sair</button>`;
             }
             
-            // Oculta os formulários de login/cadastro
             if (loginForm) loginForm.style.display = 'none';
             if (signupForm) signupForm.style.display = 'none';
-            if (authSection) authSection.style.display = 'none'; // Esconde a seção de formulários completa
+            if (authSection) authSection.style.display = 'none';
 
-            // Controla a visibilidade da seção de publicação (baseado no role)
             if (publishPropertySection) {
-                if (isAdmin) { // Se o usuário logado for admin
-                    publishPropertySection.style.display = 'block'; // Mostra a publicação
-                } else { // Se o usuário logado NÃO for admin
-                    publishPropertySection.style.display = 'none'; // Esconde a publicação
-                    // Apenas se esta página for a de publicação (publish.html), avise ao usuário
+                if (isAdmin) {
+                    publishPropertySection.style.display = 'block';
+                } else {
+                    publishPropertySection.style.display = 'none';
                     if (window.location.pathname.includes('publish.html')) {
                        alert('Você não tem permissão para publicar imóveis. Apenas administradores podem fazer isso.');
                     }
                 }
             }
 
-            // Mostra o botão de sair na navegação
             if (navLogoutBtn) {
                 navLogoutBtn.style.display = 'block';
                 navLogoutBtn.onclick = async (e) => {
@@ -186,12 +310,11 @@ export function setupAuthForms() {
                     const { error } = await auth.signOut();
                     if (error) console.error('Erro ao sair:', error.message);
                     else alert('Você foi desconectado.');
-                    updateAuthUI(); // Atualiza a UI após o logout
-                    window.location.href = 'index.html'; // Redireciona para a página inicial
+                    updateAuthUI();
+                    window.location.href = 'index.html';
                 };
             }
 
-            // Lógica para o botão de logout inline (se você o mantiver)
             const logoutInlineBtn = document.getElementById('logout-btn-inline');
             if (logoutInlineBtn) {
                 logoutInlineBtn.onclick = async () => {
@@ -199,32 +322,29 @@ export function setupAuthForms() {
                     if (error) console.error('Erro ao sair:', error.message);
                     else alert('Você foi desconectado.');
                     updateAuthUI();
-                    window.location.href = 'index.html'; // Redireciona para a página inicial
+                    window.location.href = 'index.html';
                 };
             }
 
         } else {
-            // --- ATUALIZAÇÃO DA UI PARA USUÁRIO NÃO LOGADO ---
             console.log('Nenhum usuário logado.');
 
-            if (authSection) authSection.style.display = 'block'; // Mostra a seção de autenticação
-            if (userStatusDiv) userStatusDiv.style.display = 'none'; // Oculta o status de boas-vindas
+            if (authSection) authSection.style.display = 'block';
+            if (userStatusDiv) userStatusDiv.style.display = 'none';
             
-            if (loginForm) loginForm.style.display = 'block'; // Mostra formulário de login por padrão
-            if (signupForm) signupForm.style.display = 'none'; // Oculta formulário de cadastro
+            if (loginForm) loginForm.style.display = 'block';
+            if (signupForm) signupForm.style.display = 'none';
 
-            if (publishPropertySection) publishPropertySection.style.display = 'none'; // Oculta a seção de publicação
-            if (navLogoutBtn) navLogoutBtn.style.display = 'none'; // Esconde o botão de sair na navegação
+            if (publishPropertySection) publishPropertySection.style.display = 'none';
+            if (navLogoutBtn) navLogoutBtn.style.display = 'none';
         }
     }
 
-    // Ouve mudanças no estado de autenticação (login, logout, etc.)
     auth.onAuthStateChange((event, session) => {
         console.log('Auth state changed:', event, session);
-        updateAuthUI(); // Atualiza a UI sempre que o estado muda
+        updateAuthUI();
     });
 
-    // Configura o formulário de login
     if (loginForm) {
         loginForm.addEventListener('submit', async (e) => {
             e.preventDefault();
@@ -232,11 +352,9 @@ export function setupAuthForms() {
             const password = loginForm['login-password'].value;
             const { error } = await auth.signInWithPassword({ email, password });
             if (error) alert('Erro no login: ' + error.message);
-            // updateAuthUI() será chamado automaticamente pelo onAuthStateChange
         });
     }
 
-    // Configura o formulário de cadastro
     if (signupForm) {
         signupForm.addEventListener('submit', async (e) => {
             e.preventDefault();
@@ -245,11 +363,10 @@ export function setupAuthForms() {
             const { error } = await auth.signUp({ email, password });
             if (error) alert('Erro no cadastro: ' + error.message);
             else alert('Cadastro realizado! Verifique seu e-mail para confirmar a conta.');
-            // updateAuthUI() será chamado automaticamente pelo onAuthStateChange
         });
     }
 
-    updateAuthUI(); // Chama ao carregar a página para definir o estado inicial da UI
+    updateAuthUI();
 }
 
 // Configura o formulário de publicação de imóveis
@@ -319,9 +436,8 @@ export function setupPropertySubmission() {
 
             for (let i = 0; i < files.length; i++) {
                 const file = files[i];
-                // --- APLICA A FUNÇÃO DE SANEAR O NOME DO ARQUIVO AQUI ---
-                const sanitizedFileName = sanitizeFileName(file.name); // Chama a função aqui
-                const filePath = `${usuarioId}/${novoImovelId}/${Date.now()}-${sanitizedFileName}`; // Usa o nome saneado
+                const sanitizedFileName = sanitizeFileName(file.name);
+                const filePath = `${usuarioId}/${novoImovelId}/${Date.now()}-${sanitizedFileName}`;
 
                 const { error: uploadError } = await storage
                     .from('fotos-imoveis')
