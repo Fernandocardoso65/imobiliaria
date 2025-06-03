@@ -1,0 +1,594 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Imobiliária Oto</title>
+    <style>
+        /* Mantenha TODO o seu CSS existente aqui */
+        /* Certifique-se de que os estilos .form-section, .user-status, etc. ainda estão aqui */
+        /* E que display: none; para .form-section está presente */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Arial', sans-serif;
+        }
+
+        body {
+            background-color: #f4f4f9;
+            color: #333;
+            line-height: 1.6;
+        }
+
+        header {
+            background-color: #2c3e50;
+            color: #fff;
+            padding: 1rem 0;
+            text-align: center;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+
+        header h1 {
+            font-size: 2rem;
+        }
+
+        nav {
+            margin-top: 0.5rem;
+        }
+
+        nav a {
+            color: #fff;
+            text-decoration: none;
+            margin: 0 1rem;
+            font-size: 1.1rem;
+            transition: color 0.3s ease;
+        }
+
+        nav a:hover {
+            color: #3498db;
+        }
+
+        .hero {
+            background: url('https://images.unsplash.com/photo-1600585154340-be6161a56a0c?ixlib=rb-4.0.3&auto=format&fit=crop&w=1350&q=80') no-repeat center center/cover;
+            height: 400px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            color: #fff;
+            position: relative;
+        }
+
+        .hero::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+        }
+
+        .hero-content {
+            position: relative;
+            z-index: 1;
+        }
+
+        .hero h2 {
+            font-size: 2.5rem;
+            margin-bottom: 1rem;
+        }
+
+        .hero p {
+            font-size: 1.2rem;
+        }
+
+        .filters {
+            padding: 2rem 1rem;
+            max-width: 1200px;
+            margin: 0 auto;
+            background-color: #fff;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        .filters h2 {
+            text-align: center;
+            margin-bottom: 1rem;
+            font-size: 1.8rem;
+            color: #2c3e50;
+        }
+
+        .filters form {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 1rem;
+            justify-content: center;
+        }
+
+        .filters select, .filters input {
+            padding: 0.5rem;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            font-size: 1rem;
+        }
+
+        .properties {
+            padding: 3rem 1rem;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .properties h2 {
+            text-align: center;
+            margin-bottom: 2rem;
+            font-size: 2rem;
+            color: #2c3e50;
+        }
+
+        .property-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 2rem;
+        }
+
+        .property-card {
+            background: #fff;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            transition: transform 0.3s ease;
+        }
+
+        .property-card:hover {
+            transform: translateY(-5px);
+        }
+
+        .property-card img {
+            width: 100%;
+            height: 200px;
+            object-fit: cover;
+        }
+
+        .property-info {
+            padding: 1rem;
+        }
+
+        .property-info h3 {
+            font-size: 1.3rem;
+            margin-bottom: 0.5rem;
+            color: #2c3e50;
+        }
+
+        .property-info p {
+            font-size: 1rem;
+            color: #666;
+        }
+
+        .property-info .price {
+            font-weight: bold;
+            color: #3498db;
+            margin-top: 0.5rem;
+        }
+
+        .property-info button {
+            background-color: #3498db;
+            color: #fff;
+            border: none;
+            padding: 0.5rem 1rem;
+            border-radius: 5px;
+            cursor: pointer;
+            margin-top: 0.5rem;
+            transition: background-color 0.3s ease;
+        }
+
+        .property-info button:hover {
+            background-color: #2980b9;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            z-index: 100;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal-content {
+            background: #fff;
+            padding: 2rem;
+            border-radius: 10px;
+            max-width: 800px;
+            width: 90%;
+            position: relative;
+        }
+
+        .modal-content img {
+            width: 100%;
+            height: auto;
+            border-radius: 5px;
+        }
+
+        .modal-content button {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: #e74c3c;
+            color: #fff;
+            border: none;
+            padding: 0.5rem 1rem;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        .modal-content button:hover {
+            background: #c0392b;
+        }
+
+        .testimonials {
+            padding: 3rem 1rem;
+            max-width: 1200px;
+            margin: 0 auto;
+            background-color: #fff;
+        }
+
+        .testimonials h2 {
+            text-align: center;
+            margin-bottom: 2rem;
+            font-size: 2rem;
+            color: #2c3e50;
+        }
+
+        .testimonial-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 2rem;
+        }
+
+        .testimonial-card {
+            background: #f4f4f9;
+            border-radius: 10px;
+            padding: 1.5rem;
+            text-align: center;
+        }
+
+        .testimonial-card p {
+            font-style: italic;
+            color: #666;
+            margin-bottom: 1rem;
+        }
+
+        .testimonial-card h4 {
+            font-size: 1rem;
+            color: #3498db;
+        }
+
+        .location {
+            padding: 3rem 1rem;
+            max-width: 1200px;
+            margin: 0 auto;
+            text-align: center;
+            background-color: #f4f4f9;
+        }
+
+        .location h2 {
+            margin-bottom: 1rem;
+            font-size: 2rem;
+            color: #2c3e50;
+        }
+
+        .location iframe {
+            width: 100%;
+            height: 400px;
+            border: 0;
+            border-radius: 10px;
+        }
+
+        .contact {
+            background-color: #2c3e50;
+            color: #fff;
+            padding: 3rem 1rem;
+            text-align: center;
+        }
+
+        .contact h2 {
+            font-size: 2rem;
+            margin-bottom: 1rem;
+        }
+
+        .contact form {
+            max-width: 600px;
+            margin: 0 auto;
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .contact input,
+        .contact textarea {
+            padding: 0.8rem;
+            border: none;
+            border-radius: 5px;
+            font-size: 1rem;
+        }
+
+        .contact textarea {
+            resize: none;
+            height: 150px;
+        }
+
+        .contact button {
+            background-color: #3498db;
+            color: #fff;
+            border: none;
+            padding: 0.8rem;
+            border-radius: 5px;
+            font-size: 1.1rem;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+            margin-top: 1rem;
+        }
+
+        .contact button:hover {
+            background-color: #2980b9;
+        }
+
+        .whatsapp-btn {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background-color: #25D366;
+            color: #fff;
+            padding: 1rem;
+            border-radius: 50%;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+            font-size: 1.5rem;
+            text-align: center;
+            text-decoration: none;
+            z-index: 100;
+            transition: background-color 0.3s ease;
+        }
+
+        .whatsapp-btn:hover {
+            background-color: #20b858;
+        }
+
+        footer {
+            background-color: #2c3e50;
+            color: #fff;
+            text-align: center;
+            padding: 1rem 0;
+            border-top: 1px solid #34495e;
+        }
+
+        footer p {
+            font-size: 0.9rem;
+            margin: 0.3rem 0;
+        }
+
+        /* Os estilos para .form-section, .user-status, etc. ainda devem estar aqui no CSS global */
+        .form-section {
+            padding: 3rem 1rem;
+            max-width: 800px;
+            margin: 2rem auto;
+            background-color: #fff;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            /* Importante: Esta seção deve estar oculta por padrão no index.html */
+            display: none; 
+        }
+
+        .form-section h2 {
+            text-align: center;
+            margin-bottom: 2rem;
+            font-size: 2rem;
+            color: #2c3e50;
+        }
+
+        .form-section form {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .form-section label {
+            font-weight: bold;
+            margin-bottom: 0.5rem;
+            color: #555;
+        }
+
+        .form-section input[type="text"],
+        .form-section input[type="email"],
+        .form-section input[type="password"],
+        .form-section input[type="number"],
+        .form-section input[type="file"],
+        .form-section select,
+        .form-section textarea {
+            padding: 0.8rem;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            font-size: 1rem;
+            width: 100%;
+        }
+
+        .form-section button {
+            background-color: #3498db;
+            color: #fff;
+            border: none;
+            padding: 0.8rem;
+            border-radius: 5px;
+            font-size: 1.1rem;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+            margin-top: 1rem;
+        }
+
+        .form-section button:hover {
+            background-color: #2980b9;
+        }
+
+        .auth-toggle-link {
+            text-align: center;
+            margin-top: 1rem;
+        }
+
+        .auth-toggle-link a {
+            color: #3498db;
+            text-decoration: none;
+            cursor: pointer;
+        }
+        .user-status {
+            text-align: center;
+            padding: 1rem;
+            background-color: #e8f5e9; /* Light green */
+            color: #2e7d32; /* Darker green */
+            border-radius: 8px;
+            margin: 2rem auto;
+            max-width: 600px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        .user-status button {
+            margin-left: 10px;
+            background-color: #e74c3c;
+            color: white;
+            border: none;
+            padding: 0.5rem 1rem;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        .user-status button:hover {
+            background-color: #c0392b;
+        }
+
+        @media (max-width: 768px) {
+            .form-section {
+                padding: 1.5rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>Imobiliária Oto</h1>
+        <nav>
+            <a href="index.html#home">Início</a>
+            <a href="index.html#properties">Imóveis</a>
+            <a href="publish.html">Publicar Imóvel</a> <a href="index.html#testimonials">Depoimentos</a>
+            <a href="index.html#contact">Contato</a>
+        </nav>
+    </header>
+
+    <section class="hero" id="home">
+        <div class="hero-content">
+            <h2>Encontre o Lar dos Seus Sonhos</h2>
+            <p>Conforto, segurança e qualidade em Piedade, SP.</p>
+        </div>
+    </section>
+
+    <section class="filters" id="filters">
+        <h2>Filtros de Imóveis</h2>
+        <form id="filter-form">
+            <select id="type">
+                <option value="">Tipo de Imóvel</option>
+                <option value="Casa">Casa</option>
+                <option value="Chácara">Chácara</option>
+                <option value="Fazenda">Fazenda</option>
+                <option value="Apartamento">Apartamento</option>
+                <option value="Terreno">Terreno</option>
+            </select>
+            <input type="number" id="min-price" placeholder="Preço Mínimo (R$)" min="0">
+            <input type="number" id="max-price" placeholder="Preço Máximo (R$)" min="0">
+            <select id="bedrooms">
+                <option value="">Quartos</option>
+                <option value="1">1</option>
+                <option value="2">2</option>
+                <option value="3">3</option>
+                <option value="4">4+</option>
+            </select>
+            <select id="status">
+                <option value="">Status</option>
+                <option value="Pronto">Pronto</option>
+                <option value="Em Construção">Em Construção</option>
+                <option value="Lançamento">Lançamento</option>
+                <option value="Não Iniciado">Não Iniciado</option>
+            </select>
+            <button type="button" onclick="applyFilters()">Filtrar</button>
+        </form>
+    </section>
+
+    <section class="properties" id="properties">
+        <h2>Imóveis em Destaque</h2>
+        <div class="property-grid" id="property-grid">
+            <p>Carregando imóveis...</p>
+        </div>
+    </section>
+
+    <div id="modal" class="modal">
+        <div class="modal-content">
+            <button onclick="closeModal()">Fechar</button>
+            <h3 id="modal-title"></h3>
+            <img id="modal-image" src="" alt="Imagem do Imóvel">
+        </div>
+    </div>
+
+    <section class="testimonials" id="testimonials">
+        <h2>O que Nossos Clientes Dizem</h2>
+        <div class="testimonial-grid">
+            <div class="testimonial-card">
+                <p>"A equipe da Imobiliária Oto foi incrível! Encontramos nosso apartamento dos sonhos em menos de uma semana. Super recomendo!"</p>
+                <h4>— Mariana S., Piedade</h4>
+            </div>
+            <div class="testimonial-card">
+                <p>"Profissionalismo e atendimento impecável. A compra do nosso imóvel foi tranquila e rápida. Obrigado, Oto!"</p>
+                <h4>— João P., Piedade</h4>
+            </div>
+        </div>
+    </section>
+
+    <section class="location" id="location">
+        <h2>Localização</h2>
+        <iframe src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3660.636123456789!2d-47.4258!3d-23.7099!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x94cf03e9e9e9e9e9%3A0x1234567890abcdef!2sRua%20Capit%C3%A3o%20Moraes%2C%20273%2C%20Piedade%2C%20SP%2C%20Brazil!5e0!3m2!1spt-BR!2sbr!4v1623456789!5m2!1spt-BR!2sbr" allowfullscreen="" loading="lazy"></iframe>
+    </section>
+
+    <section class="contact" id="contact">
+        <h2>Entre em Contato</h2>
+        <form id="contact-form">
+            <input type="text" id="name" placeholder="Seu Nome" required>
+            <input type="email" id="email" placeholder="Seu E-mail" required>
+            <textarea id="message" placeholder="Sua Mensagem" required></textarea>
+            <button type="button" onclick="submitForm()">Enviar Mensagem</button>
+        </form>
+    </section>
+
+    <a href="https://wa.me/5515997940520?text=Olá,%20gostaria%20de%20mais%20informações%20sobre%20os%20imóveis!" class="whatsapp-btn" target="_blank">
+        <img src="https://upload.wikimedia.org/wikipedia/commons/6/6b/WhatsApp.svg" alt="WhatsApp" style="width: 24px; height: 24px;">
+    </a>
+
+    <footer>
+        <p>Imobiliária Oto</p>
+        <p>Telefones: (15) 3344-1314 (15) 99794-0520</p>
+        <p>Endereço: Rua Capitão Moraes, 273, Piedade, SP, Brazil</p>
+        <p>Horário de Atendimento: Segunda a Sexta, 9h às 18h | Sábado, 9h às 13h</p>
+        <p>© 2025 Imobiliária Oto. Todos os direitos reservados.</p>
+    </footer>
+
+    <script type="module" src="./supabaseClient.js"></script>
+    <script type="module">
+        console.log('DOM completamente carregado em index.html. Iniciando setup...');
+        import { loadProperties } from './app.js'; // Apenas o que é necessário para esta página
+
+        document.addEventListener('DOMContentLoaded', () => {
+            loadProperties(); // Carrega os imóveis existentes
+            console.log('Setup de Supabase em index.html concluído.');
+        });
+    </script>
+</body>
+</html>
