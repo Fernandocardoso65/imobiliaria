@@ -1,17 +1,19 @@
 // app.js
 import { supabase, auth, storage, db } from './supabaseClient.js';
 
-// --- Funções auxiliares (global para onclick no HTML) ---
-window.openModal = function(title, imageSrc) {
+// --- Funções auxiliares (AGORA EXPORTADAS para serem importadas) ---
+export function openModal(title, imageSrc) { // Adicionado 'export'
     document.getElementById('modal-title').textContent = title;
     document.getElementById('modal-image').src = imageSrc;
     document.getElementById('modal').style.display = 'flex';
 };
 
-window.closeModal = function() {
+export function closeModal() { // Adicionado 'export'
     document.getElementById('modal').style.display = 'none';
 };
 
+// Funções que são chamadas via onclick direto no HTML, não precisam de export aqui
+// mas são definidas em window. para acesso global
 window.applyFilters = function() {
     const type = document.getElementById('type').value;
     const minPrice = parseFloat(document.getElementById('min-price').value) || 0;
@@ -54,7 +56,7 @@ window.submitForm = function() {
 // Carrega e exibe os imóveis na página principal (index.html)
 export async function loadProperties() {
     const propertyGrid = document.getElementById('property-grid');
-    if (!propertyGrid) { // Garante que esta função só rode se a div existe
+    if (!propertyGrid) { // Garante que esta função só rode se a div existe na página
         console.warn('Div #property-grid não encontrada. loadProperties não será executada nesta página.');
         return;
     }
@@ -129,9 +131,12 @@ export function setupAuthForms() {
 
             if (profileError) {
                 console.error('Erro ao buscar perfil do usuário:', profileError.message);
+                // Se não conseguir o perfil, pode ser um erro ou o perfil ainda não existe.
+                // O usuário está logado no Auth, mas não tem perfil no DB.
                 alert('Seu perfil de usuário não pôde ser carregado. Tente novamente ou contate o suporte.');
-                await auth.signOut(); // Desloga em caso de perfil corrompido/inexistente
-                updateAuthUI();
+                // Recomendo deslogar se o perfil não puder ser carregado para evitar estados inconsistentes
+                await auth.signOut();
+                updateAuthUI(); // Atualiza a UI após o logout
                 return;
             }
 
@@ -238,11 +243,11 @@ export function setupAuthForms() {
 
 // Configura o formulário de publicação de imóveis
 export function setupPropertySubmission() {
-    const publishForm = document.getElementById('publish-form');
     console.log('setupPropertySubmission: Tentando configurar formulário de publicação.');
 
+    const publishForm = document.getElementById('publish-form');
     if (!publishForm) {
-        console.error('setupPropertySubmission: ERRO: Formulário de publicação (#publish-form) não encontrado no DOM.');
+        console.error('setupPropertySubmission: ERRO: Formulário de publicação (#publish-form) não encontrado no DOM. Esta função pode estar sendo chamada em uma página onde o formulário não existe.');
         return;
     }
     console.log('setupPropertySubmission: Formulário de publicação (#publish-form) encontrado. Anexando event listener.');
