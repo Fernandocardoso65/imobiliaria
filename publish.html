@@ -401,6 +401,20 @@
         </form>
     </section>
 
+    <section class="form-section" id="reset-password-section" style="display: none;">
+        <h2>Redefinir sua Senha</h2>
+        <form id="reset-password-form">
+            <label for="new-password">Nova Senha:</label>
+            <input type="password" id="new-password" required>
+            <label for="confirm-password">Confirmar Nova Senha:</label>
+            <input type="password" id="confirm-password" required>
+            <button type="submit">Redefinir Senha</button>
+        </form>
+        <div class="auth-toggle-link">
+            <a href="index.html">Voltar para o Início</a>
+        </div>
+    </section>
+
     <div id="modal" class="modal" style="display: none;">
         <div class="modal-content">
             <button onclick="closeModal()">Fechar</button>
@@ -426,14 +440,20 @@
     <script type="module" src="./auth.js"></script>
     <script type="module">
         console.log('DOM completamente carregado em publish.html. Iniciando setup...');
-        // Importa o que é necessário para esta página (autenticação e submissão, funcoes de modal)
-        import { setupAuthForms, setupPropertySubmission, openModal, closeModal } from './app.js'; 
+        // Importa o que é necessário para esta página (autenticação e submissão, funcoes de modal e redefinição)
+        import { setupAuthForms, setupPropertySubmission, openModal, closeModal, handlePasswordReset } from './app.js'; 
 
         // Torna as funções do modal acessíveis globalmente para onclick
         window.openModal = openModal;
         window.closeModal = closeModal;
 
-        document.addEventListener('DOMContentLoaded', () => {
+        document.addEventListener('DOMContentLoaded', async () => { // Adicionado 'async' aqui
+            const isResetFlow = await handlePasswordReset(); // Tenta tratar redefinição de senha
+            if (isResetFlow) {
+                console.log('Fluxo de redefinição de senha detectado e tratado.');
+                return; // Se for redefinição, não configura os outros formulários de auth
+            }
+
             setupAuthForms(); // Configura os formulários de autenticação
             setupPropertySubmission(); // Configura o formulário de publicação
             console.log('Setup de Supabase e formulários em publish.html concluído.');
